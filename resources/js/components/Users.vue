@@ -21,24 +21,28 @@
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Email</th>
-                                <th>Type</th>
+                                <th>Role</th>
+                                <th>Created at</th>
                                 <th>Modify</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>183</td>
-                                <td>John Doe</td>
-                                <td>11-7-2014</td>
+                            <tr v-for="user in users" :key="user.id">
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.type }}</td>
+                                <td>{{ user.created_at | formatDate}}</td>
                                 <td>
-                                    <span class="tag tag-success"
-                                        >Approved</span
-                                    >
-                                </td>
-                                <td>
-                                    <a><i class="fa fa-eye"></i></a> |
-                                    <a><i class="fa fa-edit"></i></a> |
-                                    <a><i class="fa fa-trash"></i></a>
+                                    <a
+                                        href="#"
+                                        class="btn btn-primary"
+                                        ><i class="fa fa-edit"></i></a> |
+                                    <a
+                                        href="#"
+                                        class="btn btn-danger"
+                                        @click="deleteWithNotification(user.id)"
+                                        ><i class="fa fa-trash"></i></a>
                                 </td>
                             </tr>
                         </tbody>
@@ -154,6 +158,7 @@
 export default {
     data(){
         return{
+            users:{},
             form: new Form({
                 name: '',
                 email: '',
@@ -165,9 +170,56 @@ export default {
         }
     },
     methods: {
+        loadUsers(){
+            axios.get('api/user')
+            .then(({data})=>(this.users = data.data))
+        },
+        notification(icon, title){
+            toast.fire({
+                icon: icon,
+                title: title
+            });
+        },
         createUser(){
-            this.form.post('api/user');
-        }
+            this.form.post('api/user')
+            .then(()=>{
+                this.notification('success', 'User created successfully !');
+                Fire.$emit('reloadUsers');
+            })
+            .catch((err)=>{
+                this.notification('error', 'Make sure you fill all fields');
+            })
+        },
+        deleteWithNotification(id){
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+                })
+                .then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire(
+                        'Deleted!',
+                        'User has been deleted.',
+                        'success'
+                        )
+                        this.form.delete(`api/user/${id}`)
+                        .then(()=>{
+                            Fire.$emit('reloadUsers');
+                        })
+                    }
+                })
+        },
+    },
+    created(){
+        this.loadUsers();
+        Fire.$on('reloadUsers', ()=>{
+            this.loadUsers();
+        })
     }
 }
 </script>
